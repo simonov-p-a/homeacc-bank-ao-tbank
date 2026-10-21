@@ -1,21 +1,61 @@
 {
   "name": "АО \"ТБанк\"",
+  "site": "https://www.tbank.ru",
   "regNum": "2673",
   "binding": {
-    "type": "manual",
+    "type": "api",
+    "registerUrl": "https://www.tbank.ru/invest/settings/",
     "steps": [
-      {
-        "text": "Откройте выписку вашего банка и выберите период."
-      },
-      {
-        "text": "Скопируйте строки операций в формате: дд.мм.гггг; сумма; описание"
-      },
-      {
-        "text": "Вставьте их в поле ниже и нажмите «Импортировать»."
-      }
+      { "text": "Т-Банк отдаёт открытый API только по инвестиционным счетам (Т-Инвестиции, ИИС). Нажмите «① Настройки токена» — откроется страница выпуска токена.", "bold": true },
+      { "text": "Выполните вход в настройках Т-Инвестиций; функция «Подтверждение сделок кодом» должна быть отключена — иначе токен не выпустят." },
+      { "text": "Выпустите Readonly-токен (только чтение) и сразу скопируйте его — он показывается только один раз." },
+      { "text": "Вставьте токен в поле ниже и нажмите «② Загрузить операции» — баланс портфеля и история подтянутся сами; далее при каждом запуске программы." },
+      { "text": "Операции по обычным картам Т-Банка через API не отдаются — вводите их вручную в блоке ниже." }
+    ],
+    "buttons": [
+      { "label": "① Настройки токена", "action": "register" },
+      { "label": "② Загрузить операции", "action": "sync", "primary": true }
+    ],
+    "fields": [
+      { "name": "token", "label": "Readonly-токен", "placeholder": "вставьте токен Т-Инвестиций" }
     ],
     "manual": {
-      "rows": 12
+      "rows": "дд.мм.гггг; сумма; описание"
+    },
+    "rest": {
+      "base": "https://invest-public-api.tinkoff.ru/rest",
+      "auth": "bearer",
+      "accounts": {
+        "url": "tinkoff.public.invest.api.contract.v1.UsersService/GetAccounts",
+        "method": "POST",
+        "body": {},
+        "list": "accounts",
+        "where": "status!=ACCOUNT_STATUS_CLOSED",
+        "pick": "all",
+        "id": "id",
+        "number": ["name", "id"]
+      },
+      "balance": {
+        "url": "tinkoff.public.invest.api.contract.v1.OperationsService/GetPortfolio",
+        "method": "POST",
+        "body": { "accountId": "$account" },
+        "value": "totalAmountPortfolio"
+      },
+      "operations": {
+        "url": "tinkoff.public.invest.api.contract.v1.OperationsService/GetOperations",
+        "method": "POST",
+        "body": { "accountId": "$account", "from": "$from", "to": "$to" },
+        "list": "operations",
+        "days": 90,
+        "fields": {
+          "id": "id",
+          "date": "date",
+          "amount": "payment",
+          "title": ["description", "type"],
+          "status": "state"
+        },
+        "statusOk": ["OPERATION_STATE_EXECUTED"]
+      }
     }
   }
 }
